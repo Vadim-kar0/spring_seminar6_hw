@@ -1,13 +1,18 @@
 package ru.geekbrains.seminar6_hw.controller;
 
+
+import io.micrometer.core.instrument.Counter;
+import io.micrometer.core.instrument.Metrics;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.java.Log;
 import org.aspectj.weaver.ast.Not;
+import org.springframework.data.geo.Metric;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import ru.geekbrains.seminar6_hw.model.Note;
 import ru.geekbrains.seminar6_hw.repository.NoteRepository;
+import ru.geekbrains.seminar6_hw.services.FileGateWay;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -21,9 +26,17 @@ import java.util.Optional;
 public class NoteController {
     private final NoteRepository repository;
 
+    private final Counter addNoteCounter = Metrics.counter("add_note_count");
+
+    private final FileGateWay fileGateWay;
+
     @PostMapping
     public ResponseEntity<Note> createNote(@RequestBody Note note){
         log.info("Note was created: " + note);
+
+        fileGateWay.writeToFile(note.getTitle() + ".txt", note.toString());
+
+        addNoteCounter.increment();
         return new ResponseEntity<>(repository.save(note), HttpStatus.CREATED);
     }
 
