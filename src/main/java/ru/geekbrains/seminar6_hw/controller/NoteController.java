@@ -13,6 +13,7 @@ import org.springframework.web.bind.annotation.*;
 import ru.geekbrains.seminar6_hw.model.Note;
 import ru.geekbrains.seminar6_hw.repository.NoteRepository;
 import ru.geekbrains.seminar6_hw.services.FileGateWay;
+import ru.geekbrains.seminar6_hw.services.NoteService;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -24,7 +25,7 @@ import java.util.Optional;
 @RequiredArgsConstructor
 @Log
 public class NoteController {
-    private final NoteRepository repository;
+    private final NoteService noteService;
 
     private final Counter addNoteCounter = Metrics.counter("add_note_count");
 
@@ -37,24 +38,24 @@ public class NoteController {
         fileGateWay.writeToFile(note.getTitle() + ".txt", note.toString());
 
         addNoteCounter.increment();
-        return new ResponseEntity<>(repository.save(note), HttpStatus.CREATED);
+        return new ResponseEntity<>(noteService.save(note), HttpStatus.CREATED);
     }
 
     @GetMapping
     public ResponseEntity<List<Note>> getAll(){
-        log.info("\nUsing getAllTasks: \n" + repository.findAll()
+        log.info("\nUsing getAllTasks: \n" + noteService.getAllNotes()
                 .toString()
                 .replaceAll("\\), ", "), \n"));
-        return new ResponseEntity<>(repository.findAll(), HttpStatus.OK);}
+        return new ResponseEntity<>(noteService.getAllNotes(), HttpStatus.OK);}
 
     @GetMapping("/{id}")
     public ResponseEntity<Note> getNoteById(@PathVariable Long id){
-        return new ResponseEntity<>(repository.findById(id).orElseThrow(), HttpStatus.OK);
+        return new ResponseEntity<>(noteService.getNoteById(id).orElseThrow(), HttpStatus.OK);
     }
 
     @PutMapping("/{id}")
     public ResponseEntity<Note> update(@PathVariable Long id,@RequestBody Note note){
-        Optional<Note> noteOptional = repository.findById(id);
+        Optional<Note> noteOptional = noteService.getNoteById(id);
         if(noteOptional.isPresent()){
             Note result = noteOptional.get();
             result.setTitle(note.getTitle());
@@ -69,9 +70,9 @@ public class NoteController {
 
     @DeleteMapping("/{id}")
     public ResponseEntity<Note> deleteNote(@PathVariable Long id){
-        Optional<Note> noteOptional = repository.findById(id);
+        Optional<Note> noteOptional = noteService.getNoteById(id);
         if(noteOptional.isPresent()){
-            repository.deleteById(id);
+            noteService.deleteNote(id);
             return ResponseEntity.ok().build();
         } else {
             return ResponseEntity.notFound().build();
